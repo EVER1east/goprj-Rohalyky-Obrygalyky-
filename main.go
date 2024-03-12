@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"goprj/domain"
 	"math/rand"
+	"os"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -17,10 +20,19 @@ const (
 var id uint64 = 1
 
 func main() {
-	var leaderboard []domain.User
 
 	fmt.Println("Вітаю у Грі \"РОГАЛИКИ-ОБРИГАЛИКИ\"")
 	time.Sleep(1 * time.Second)
+
+	leaderboard := showRate()
+	for _, u := range leaderboard {
+		if u.Id > id {
+			id = u.Id
+		}
+
+	}
+	id++
+
 	for {
 
 		menu()
@@ -30,17 +42,20 @@ func main() {
 		switch punct {
 		case "1":
 			var u = play()
+			var leaderboard = showRate()
 			leaderboard = append(leaderboard, u)
+			sortAndSave(leaderboard)
 		case "2":
+			var leaderboard = showRate()
 			fmt.Println("Список невдах, піднятих Інтернетом:")
 			for _, user := range leaderboard {
-				fmt.Printf("IP :%v \nПогоняло-Обригало: %s\nРоків витратив: %v\n",
+				fmt.Printf("IP :%v Погоняло-Обригало: %sРоків витратив: %v\n",
 					user.Id,
 					user.Name,
 					user.Time)
+
 			}
 
-			fmt.Println("На таблицю кончених не хватило бюджету, тому що він пішов на подарунки колишнім Віталія-ПідКаблукомСтоялія")
 		case "3":
 			return
 		default:
@@ -50,6 +65,7 @@ func main() {
 }
 
 func play() domain.User {
+	//Тут можна добавити по приколу інші варіації мотивації
 	fmt.Println("Відповідай і наригай!")
 	now := time.Now()
 
@@ -118,7 +134,7 @@ func play() domain.User {
 			}
 			if mineRohalykyInGame < 1 {
 				fmt.Println("Ти програв потну каточку :С ")
-				time.Sleep(9 * time.Second)
+				time.Sleep(8 * time.Second)
 				break
 			}
 
@@ -149,4 +165,61 @@ func menu() {
 	fmt.Println("1: Почати крінжувати, забираючи рогалики з під під'їзду!")
 	fmt.Println("2. Хто крінжанув більше(таблиця кончених)!")
 	fmt.Println("3. Померти від крінжу (не видержати тякої тяжкої долі і лівнути)!")
+}
+func sortAndSave(leaderboard []domain.User) {
+	sort.Slice(leaderboard, func(i, j int) bool {
+		return leaderboard[i].Time < leaderboard[j].Time
+	})
+	file, err := os.OpenFile("leaderboard.json", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		fmt.Printf("Сталась помилка :С %s\n", err)
+		return
+	}
+
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			fmt.Printf("Трабли с файлом Е_Е: %s\n", err)
+		}
+	}(file)
+
+	var encoder = json.NewEncoder(file)
+	err = encoder.Encode(leaderboard)
+	if err != nil {
+		fmt.Printf("От чорт. ПомилОЧКА: %s\n", err)
+		return
+	}
+	fmt.Print(leaderboard)
+}
+
+func showRate() []domain.User {
+	var info, err = os.Stat("leaderboard.json")
+	if err != nil {
+		fmt.Printf("Щось страшне із змістом файлу: %s\n", err)
+		return nil
+	}
+
+	var leaderboard []domain.User
+	if info.Size() != 0 {
+		var file, err = os.Open("leaderboard.json")
+		if err != nil {
+			fmt.Printf("Сталась помилка ойойойо: %s\n", err)
+			return nil
+		}
+
+		defer func(file *os.File) {
+			err = file.Close()
+			if err != nil {
+				fmt.Printf("Трабли с файлом Е_Е: %s\n", err)
+			}
+		}(file)
+
+		var decoder = json.NewDecoder(file)
+		err = decoder.Decode(&leaderboard)
+		if err != nil {
+			fmt.Printf("Помилка декодування: %s\n", err)
+			return nil
+		}
+	}
+	return leaderboard
 }
