@@ -47,17 +47,23 @@ func main() {
 			sortAndSave(leaderboard)
 		case "2":
 			var leaderboard = showRate()
-			fmt.Println("Список невдах, піднятих Інтернетом:")
-			for _, user := range leaderboard {
-				fmt.Printf("IP :%v Погоняло-Обригало: %sРоків витратив: %v\n",
-					user.Id,
-					user.Name,
-					user.Time)
 
+			if leaderboard == nil {
+
+			} else {
+				fmt.Println("Список невдах, піднятих Інтернетом:")
+				for _, user := range leaderboard {
+					fmt.Printf("IP :%v | Погоняло-Обригало: %s | Років витратив: %v\n",
+						user.Id,
+						user.Name,
+						user.Time)
+				}
 			}
 
 		case "3":
 			return
+		case "7":
+			clearRate()
 		default:
 			fmt.Println("♥️Гарна спроба взломати пентагон!♥️")
 		}
@@ -140,7 +146,7 @@ func play() domain.User {
 
 		}
 		if mineRohalykyInGame >= 30 {
-			timeSpent := time.Since(now)
+			timeSpent := time.Since(now).Round(time.Second)
 			fmt.Printf("ОЙОЙОЙОЙО! ТОБІ БУЛО ПОТРІБНО %v років для того щоб зібрати всі рогалики!\n", timeSpent)
 
 			fmt.Println("Введіть ваше погоняло: ")
@@ -165,37 +171,39 @@ func menu() {
 	fmt.Println("1: Почати крінжувати, забираючи рогалики з під під'їзду!")
 	fmt.Println("2. Хто крінжанув більше(таблиця кончених)!")
 	fmt.Println("3. Померти від крінжу (не видержати тякої тяжкої долі і лівнути)!")
+	fmt.Println("7. Позбавитися конкурентів (не витримати тякої конкуренції...)")
 }
+
 func sortAndSave(leaderboard []domain.User) {
 	sort.Slice(leaderboard, func(i, j int) bool {
 		return leaderboard[i].Time < leaderboard[j].Time
 	})
+
 	file, err := os.OpenFile("leaderboard.json", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
-		fmt.Printf("Сталась помилка :С %s\n", err)
+		fmt.Printf("Сталась помилка створення файлу :С %s\n", err)
 		return
 	}
 
 	defer func(file *os.File) {
 		err = file.Close()
 		if err != nil {
-			fmt.Printf("Трабли с файлом Е_Е: %s\n", err)
+			fmt.Printf("Трабли с закриттям ротику файла Е_Е: %s\n", err)
 		}
 	}(file)
 
 	var encoder = json.NewEncoder(file)
 	err = encoder.Encode(leaderboard)
 	if err != nil {
-		fmt.Printf("От чорт. ПомилОЧКА: %s\n", err)
+		fmt.Printf("От чорт. ПомилОЧКА в записі результатів у таблицю лідерів: %s\n", err)
 		return
 	}
-	fmt.Print(leaderboard)
 }
 
 func showRate() []domain.User {
 	var info, err = os.Stat("leaderboard.json")
 	if err != nil {
-		fmt.Printf("Щось страшне із змістом файлу: %s\n", err)
+		fmt.Printf("        Поки що немає рекордів |:3_3:|\n")
 		return nil
 	}
 
@@ -203,7 +211,7 @@ func showRate() []domain.User {
 	if info.Size() != 0 {
 		var file, err = os.Open("leaderboard.json")
 		if err != nil {
-			fmt.Printf("Сталась помилка ойойойо: %s\n", err)
+			fmt.Printf("Сталась помилка ойойойо (РОЗМІР ВАЖЛИВИЙ!): %s\n", err)
 			return nil
 		}
 
@@ -222,4 +230,13 @@ func showRate() []domain.User {
 		}
 	}
 	return leaderboard
+}
+
+func clearRate() {
+	var err = os.Remove("leaderboard.json")
+	if err != nil {
+		fmt.Printf("Помилка при видаленні даних вашої карти, прав на квартиру і паролю до OnlyFans аккаунту")
+		return
+	}
+	fmt.Println("Ви успішно знищили всіх конкурентів")
 }
